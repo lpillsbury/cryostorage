@@ -1,0 +1,54 @@
+#####RTD Equations/Functions######
+
+#equation: R_T = R0 + R0*A*T
+import numpy as np
+import matplotlib.pyplot as plt
+
+def resistance(T): #T in celcius
+    '''returns resistance in Ohms, given temperature in C'''
+
+    return R0+R0*T*A
+
+def temperature(R,R_offset = 0): #R in ohms
+    '''returns temperature in C, given resistance in ohms and 
+    an offset resistance due to additional wires/connectors'''
+    alpha = 0.00385
+    delta = 1.605
+    A = alpha + (alpha*delta)/100
+    R0 = 1000
+    return ((R-R_offset)-R0)/(R0*A)
+   
+   
+   
+#test the functions with dry ice values!
+resistance(-78.5)
+
+#lowest resistance measured ~ 750 ohm
+#amount of offset resistance ~ 750 - 692.92 = 57.08 ohms 
+temperature(750,R_offset=57.08)
+
+#####RTD PLOTs######
+
+#theory values of temperature (t) and resistance (R)
+t = np.arange(-200,40,1)
+R = []
+for i in t:
+    R.append(resistance(i))
+    
+    
+#Rito's measured values at room and LN2 temperatures
+r_room_apr621 = 1076 #in ohms
+t_room_apr621 = 18.5 #in deg C
+r_ln2_apr621 = 271
+t_ln2_apr621 = 77 - 273.15 #in deg C
+
+#plot of theory and mesaurement 
+plt.figure(figsize=(8,6))
+plt.plot(t,R,color = 'k', linestyle = '--', label ='Theory')
+plt.plot(t_room_apr621,r_room_apr621, marker = '*',color='r',label='291.65 K')
+plt.plot(t_ln2_apr621,r_ln2_apr621, marker = '*',color='b', label = '77 K')
+plt.xlabel('T [C]',size = 12)
+plt.ylabel('R [Ohm]', size=12)
+plt.legend()
+plt.show()
+    
