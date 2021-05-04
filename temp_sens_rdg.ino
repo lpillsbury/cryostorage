@@ -28,34 +28,22 @@ Adafruit_MAX31865 thermo = Adafruit_MAX31865(10, 11, 12, 13);
 //Adafruit_MAX31865 thermo = Adafruit_MAX31865(10);
 
 // The value of the Rref resistor. Use 430.0 for PT100 and 4300.0 for PT1000
-#define RREF      430.0
+#define RREF      4300.0
 // The 'nominal' 0-degrees-C resistance of the sensor
 // 100.0 for PT100, 1000.0 for PT1000
-#define RNOMINAL  100.0
+#define RNOMINAL  1000.0
+
+unsigned long start_time = millis();
 
 void setup() {
-  unsigned long start_time = millis()
   Serial.begin(9600);
   Serial.println("Temperature readings from inside the vacuum chamber");
+  Serial.println("elapsed time(s)    resistance(ohms)");
   thermo.begin(MAX31865_2WIRE);  // set to 2WIRE given our sensor
 }
 
-
-void loop() {
-  uint16_t rtd = thermo.readRTD();
-
-  // Serial.print("RTD value: "); Serial.println(rtd);
-  float ratio = rtd;
-  ratio /= 32768;
-  // Serial.print("Ratio = "); Serial.println(ratio,8);
-  // Serial.print("Resistance = "); Serial.println(RREF*ratio,8);
-  // Serial.print("Temperature = "); 
-  unsigned long nowtime = millis()
-  Serial.print(nowtime - start_time);  //will this be big enough for recording over days?
-  Serial.print(" ");
-  Serial.println(thermo.temperature(RNOMINAL, RREF));
-
-  // Check and print any faults
+void check_fault() {
+// Check and print any faults
   uint8_t fault = thermo.readFault();
   if (fault) {
     Serial.print("Fault 0x"); Serial.println(fault, HEX);
@@ -79,6 +67,30 @@ void loop() {
     }
     thermo.clearFault();
   }
-  Serial.println();
-  delay(10);
+}
+
+float take_samples(){
+  uint16_t rtd;
+  float cumsum = 0;
+  float ratio;
+  for(int i = 0; i < 100; i++){
+    rtd = thermo.readRTD();
+    check_fault();
+    ratio = rtd;
+    ratio /= 32768;
+    cumsum = cumsum + ratio;
+    delay(2);
+  }
+  // return average ratio
+  return cumsum/100 * RREF;
+}
+
+void loop() {
+  float measured_resist;
+  unsigned long nowtime = millis();
+  measured_resist = take_samples();
+  Serial.print((nowtime - start_time)/1000);  //will this be big enough for recording over days?
+  Serial.print("\t");
+  Serial.println(measured_resist);
+  delay(10*1000);  //take a set of readings every 10 seconds
 }
